@@ -14,6 +14,8 @@ async function seed() {
     '03_seed_packages_roles.sql',
     '04_seed_demo_accounts.sql',
     '05_seed_demo_workspaces_data.sql',
+    '06_storage_buckets.sql',
+    '07_auth_users_and_triggers.sql',
   ];
 
   console.log('[1/3] Generating supabase/combined_migration.sql for Supabase Cloud SQL Editor...');

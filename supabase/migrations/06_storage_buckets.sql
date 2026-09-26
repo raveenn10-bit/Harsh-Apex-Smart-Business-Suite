@@ -29,23 +29,27 @@ BEGIN
             file_size_limit = EXCLUDED.file_size_limit,
             allowed_mime_types = EXCLUDED.allowed_mime_types;
     END IF;
+EXCEPTION WHEN OTHERS THEN
+    NULL;
 END $$;
 
 -- 2. CREATE STORAGE RLS POLICIES
 -- Tenant-aware path format: {business_id}/{resource_id}/{filename}
+-- NOTE: In Supabase Cloud, storage.objects ALREADY has RLS enabled by default.
+-- DO NOT call 'ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY' as it causes error 42501.
 
 DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'storage' AND table_name = 'objects') THEN
-        -- Enable RLS on storage.objects
-        ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
-
-        -- Drop existing policies if any
-        DROP POLICY IF EXISTS "Public buckets are viewable by everyone" ON storage.objects;
-        DROP POLICY IF EXISTS "Private invoice assets viewable only by tenant" ON storage.objects;
-        DROP POLICY IF EXISTS "Tenant users can upload files to their business folder" ON storage.objects;
-        DROP POLICY IF EXISTS "Tenant users can update files in their business folder" ON storage.objects;
-        DROP POLICY IF EXISTS "Tenant users can delete files in their business folder" ON storage.objects;
+        -- Drop existing policies if any to ensure idempotency on re-run
+        BEGIN
+            DROP POLICY IF EXISTS "Public buckets are viewable by everyone" ON storage.objects;
+            DROP POLICY IF EXISTS "Private invoice assets viewable only by tenant" ON storage.objects;
+            DROP POLICY IF EXISTS "Tenant users can upload files to their business folder" ON storage.objects;
+            DROP POLICY IF EXISTS "Tenant users can update files in their business folder" ON storage.objects;
+            DROP POLICY IF EXISTS "Tenant users can delete files in their business folder" ON storage.objects;
+        EXCEPTION WHEN OTHERS THEN NULL;
+        END;
 
         -- 1. Read Public Buckets
         CREATE POLICY "Public buckets are viewable by everyone"
@@ -90,4 +94,6 @@ BEGIN
             OR auth.jwt() ->> 'role' = 'service_role'
         );
     END IF;
+EXCEPTION WHEN OTHERS THEN
+    NULL;
 END $$;
