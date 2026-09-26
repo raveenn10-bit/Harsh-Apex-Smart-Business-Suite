@@ -27,6 +27,8 @@ export async function getPGlite(): Promise<PGlite> {
           '03_seed_packages_roles.sql',
           '04_seed_demo_accounts.sql',
           '05_seed_demo_workspaces_data.sql',
+          '06_storage_buckets.sql',
+          '07_auth_users_and_triggers.sql',
         ];
 
         for (const file of migrationFiles) {

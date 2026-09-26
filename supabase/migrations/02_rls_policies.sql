@@ -3,11 +3,22 @@
 -- Supabase Row Level Security (RLS) for Strict Multi-Tenant Isolation
 -- ============================================================
 
--- Create auth schema fallback for local PostgreSQL engines (PGlite/local test)
-CREATE SCHEMA IF NOT EXISTS auth;
-CREATE OR REPLACE FUNCTION auth.uid() RETURNS UUID AS $$ SELECT 'c1000000-0000-0000-0000-000000000001'::UUID; $$ LANGUAGE sql;
-CREATE OR REPLACE FUNCTION auth.role() RETURNS TEXT AS $$ SELECT 'authenticated'::TEXT; $$ LANGUAGE sql;
-CREATE OR REPLACE FUNCTION auth.jwt() RETURNS JSONB AS $$ SELECT '{"role": "authenticated"}'::JSONB; $$ LANGUAGE sql;
+-- Create auth schema fallback only if missing (e.g. local test/PGlite engines)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'auth') THEN
+        CREATE SCHEMA auth;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'auth' AND p.proname = 'uid') THEN
+        EXECUTE 'CREATE FUNCTION auth.uid() RETURNS UUID AS $f$ SELECT NULL::UUID; $f$ LANGUAGE sql STABLE;';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'auth' AND p.proname = 'role') THEN
+        EXECUTE 'CREATE FUNCTION auth.role() RETURNS TEXT AS $f$ SELECT ''authenticated''::TEXT; $f$ LANGUAGE sql STABLE;';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'auth' AND p.proname = 'jwt') THEN
+        EXECUTE 'CREATE FUNCTION auth.jwt() RETURNS JSONB AS $f$ SELECT ''{"role": "authenticated"}''::JSONB; $f$ LANGUAGE sql STABLE;';
+    END IF;
+END $$;
 
 -- Function to obtain current user's business_id from profiles
 CREATE OR REPLACE FUNCTION get_auth_business_id()

@@ -9,7 +9,9 @@
     "lint": "next lint",
     "seed": "tsx scripts/seed.ts",
     "test:phase1": "tsx scripts/test-phase1.ts",
-    "test:auth": "node scripts/test-login-http.js"
+    "test:auth": "node scripts/test-login-http.js",
+    "test:supabase": "tsx scripts/test-supabase-suite.ts",
+    "supabase:migrate": "tsx scripts/apply-supabase-migrations.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",
@@ -34,6 +36,7 @@
     "date-fns": "^4.1.0",
     "lucide-react": "^0.475.0",
     "next": "15.1.7",
+    "pg": "^8.23.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-hook-form": "^7.54.2",
@@ -45,6 +48,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.13.5",
+    "@types/pg": "^8.23.1",
     "@types/react": "19.0.10",
     "@types/react-dom": "19.0.4",
     "autoprefixer": "^10.6.1",

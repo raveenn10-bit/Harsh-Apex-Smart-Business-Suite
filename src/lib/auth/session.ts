@@ -165,3 +165,79 @@ export async function clearSessionCookie() {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE_NAME);
 }
+
+/**
+ * Reusable server-side helper: Retrieves the authenticated user profile
+ */
+export async function getCurrentUser() {
+  const session = await getCurrentSession();
+  if (!session) return null;
+  return {
+    id: session.user_id,
+    profile_id: session.profile_id,
+    email: session.email,
+    full_name: session.full_name,
+    avatar_url: session.avatar_url,
+    role: session.role,
+    business_id: session.business_id,
+  };
+}
+
+/**
+ * Reusable server-side helper: Retrieves the authenticated business workspace
+ */
+export async function getCurrentBusiness() {
+  const session = await getCurrentSession();
+  if (!session) return null;
+  return {
+    id: session.business_id,
+    name: session.business_name,
+    slug: session.business_slug,
+    package_code: session.package_code,
+    package_name: session.package_name,
+    currency: session.currency,
+    currency_symbol: session.currency_symbol,
+    features: session.features,
+  };
+}
+
+/**
+ * Reusable server-side helper: Checks if current session has a feature
+ */
+export async function hasFeature(featureCode: string): Promise<boolean> {
+  const session = await getCurrentSession();
+  if (!session) return false;
+  if (session.role === 'SUPER_ADMIN') return true;
+  return session.features.includes(featureCode);
+}
+
+/**
+ * Reusable server-side helper: Checks if current session has a permission
+ */
+export async function hasPermission(permissionCode: string): Promise<boolean> {
+  const session = await getCurrentSession();
+  if (!session) return false;
+  if (session.role === 'SUPER_ADMIN' || session.role === 'OWNER') return true;
+  return session.permissions.includes(permissionCode);
+}
+
+/**
+ * Reusable server-side helper: Enforces a required feature flag
+ */
+export async function requireFeature(featureCode: string) {
+  const allowed = await hasFeature(featureCode);
+  if (!allowed) {
+    throw new Error(`Forbidden: feature '${featureCode}' requires an upgrade`);
+  }
+}
+
+/**
+ * Reusable server-side helper: Enforces a required operational role permission
+ */
+export async function requirePermission(permissionCode: string) {
+  const allowed = await hasPermission(permissionCode);
+  if (!allowed) {
+    throw new Error(`Forbidden: insufficient permission '${permissionCode}'`);
+  }
+}
+
