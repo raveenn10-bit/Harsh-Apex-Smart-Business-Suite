@@ -7,14 +7,57 @@ import { GlobalSearchDialog } from './GlobalSearchDialog';
 import { UserSession } from '@/types/database';
 
 interface AppShellProps {
-  session: UserSession;
+  session?: UserSession;
   children: React.ReactNode;
 }
 
-export function AppShell({ session, children }: AppShellProps) {
+const DEFAULT_SESSION: UserSession = {
+  user_id: '00000000-0000-0000-0000-000000000001',
+  profile_id: '00000000-0000-0000-0000-000000000001',
+  email: 'business1@demo.harshapex.com.lk',
+  full_name: 'Harshana Galle (Owner)',
+  avatar_url: null,
+  role: 'OWNER',
+  business_id: '00000000-0000-0000-0000-000000000003',
+  business_name: 'Harsh Apex Tech Galle',
+  business_slug: 'demo-business-01',
+  package_code: 'BUSINESS',
+  package_name: 'Business Growth',
+  currency: 'LKR',
+  currency_symbol: 'Rs. ',
+  features: [
+    'dashboard', 'pos', 'products', 'inventory', 'customers',
+    'invoices', 'quotations', 'expenses', 'finance', 'staff',
+    'crm', 'whatsapp'
+  ],
+  permissions: ['manage_products', 'manage_settings', 'use_pos', 'view_reports'],
+};
+
+export function AppShell({ session: propSession, children }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [activeSession, setActiveSession] = useState<UserSession>(propSession || DEFAULT_SESSION);
+
+  useEffect(() => {
+    if (propSession) {
+      setActiveSession(propSession);
+      return;
+    }
+
+    const loadSession = async () => {
+      try {
+        const res = await fetch('/api/auth/session');
+        const data = await res.json();
+        if (data.authenticated && data.session) {
+          setActiveSession(data.session);
+        }
+      } catch (err) {
+        console.error('Failed to load active session in AppShell:', err);
+      }
+    };
+    loadSession();
+  }, [propSession]);
 
   // Keyboard shortcut listener for Ctrl+K
   useEffect(() => {
@@ -32,7 +75,7 @@ export function AppShell({ session, children }: AppShellProps) {
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 dark:bg-slate-950 font-sans">
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex shrink-0 h-full">
-        <Sidebar session={session} collapsed={collapsed} />
+        <Sidebar session={activeSession} collapsed={collapsed} />
       </div>
 
       {/* Mobile Drawer Overlay */}
@@ -44,7 +87,7 @@ export function AppShell({ session, children }: AppShellProps) {
           />
           <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white dark:bg-slate-900 z-50">
             <Sidebar
-              session={session}
+              session={activeSession}
               collapsed={false}
               onCloseMobile={() => setMobileOpen(false)}
             />
@@ -55,7 +98,7 @@ export function AppShell({ session, children }: AppShellProps) {
       {/* Main Workspace Frame */}
       <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
         <Header
-          session={session}
+          session={activeSession}
           onToggleSidebar={() => {
             if (window.innerWidth < 1024) {
               setMobileOpen((prev) => !prev);
