@@ -1,6 +1,6 @@
 import { PGlite } from '@electric-sql/pglite';
-import fs from 'fs';
 import path from 'path';
+import { BUNDLED_MIGRATIONS } from './migrations-bundle';
 
 let pgliteInstance: PGlite | null = null;
 let initPromise: Promise<PGlite> | null = null;
@@ -26,32 +26,14 @@ export async function getPGlite(): Promise<PGlite> {
       const exists = check.rows[0]?.tbl;
 
       if (!exists) {
-        console.log('[PGlite] Initializing fresh PostgreSQL schema and seed data...');
-        const migrationFiles = [
-          '01_initial_schema.sql',
-          '02_rls_policies.sql',
-          '03_seed_packages_roles.sql',
-          '04_seed_demo_accounts.sql',
-          '05_seed_demo_workspaces_data.sql',
-          '06_storage_buckets.sql',
-          '07_auth_users_and_triggers.sql',
-        ];
-
-        for (const file of migrationFiles) {
-          const filePath = path.join(process.cwd(), 'supabase', 'migrations', file);
-          if (fs.existsSync(filePath)) {
-            let sql = fs.readFileSync(filePath, 'utf-8');
-            // Remove create extension commands if PGlite doesn't ship external extensions
-            sql = sql.replace(/CREATE EXTENSION IF NOT EXISTS "uuid-ossp";/gi, '-- uuid-ossp built-in')
-                     .replace(/CREATE EXTENSION IF NOT EXISTS "pgcrypto";/gi, '-- pgcrypto built-in');
-            
-            try {
-              await pg.exec(sql);
-              console.log(`[PGlite] Applied migration: ${file}`);
-            } catch (err: unknown) {
-              const error = err as Error;
-              console.warn(`[PGlite] Warning in ${file}: ${error.message}`);
-            }
+        console.log('[PGlite] Initializing fresh PostgreSQL schema and demo seed data from bundle...');
+        for (const migration of BUNDLED_MIGRATIONS) {
+          try {
+            await pg.exec(migration.sql);
+            console.log(`[PGlite] Applied bundled migration: ${migration.name}`);
+          } catch (err: unknown) {
+            const error = err as Error;
+            console.warn(`[PGlite] Warning in ${migration.name}: ${error.message}`);
           }
         }
       }
