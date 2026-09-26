@@ -16,7 +16,7 @@ export async function getPGlite(): Promise<PGlite> {
 
     try {
       // Check if schema already initialized
-      const check = await pg.query("SELECT to_regclass('public.businesses') as tbl;");
+      const check = await pg.query<{ tbl: string | null }>("SELECT to_regclass('public.businesses') as tbl;");
       const exists = check.rows[0]?.tbl;
 
       if (!exists) {

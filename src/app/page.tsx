@@ -1,4 +1,5 @@
 import * as React from "react";
+import Link from "next/link";
 import { HarshApexLogo } from "@/components/brand/HarshApexLogo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,12 +33,16 @@ export default function HomePage() {
           <HarshApexLogo size="md" href="/" />
           <div className="flex items-center gap-3">
             <Badge variant="business">Commercial Suite v1.0</Badge>
-            <Button variant="outline" size="sm">
-              Documentation
-            </Button>
-            <Button variant="brand" size="sm">
-              Launch Suite <ArrowRight className="h-4 w-4 ml-1" />
-            </Button>
+            <Link href="/packages">
+              <Button variant="outline" size="sm">
+                Packages
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button variant="brand" size="sm">
+                Launch Suite <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
