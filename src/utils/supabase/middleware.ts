@@ -5,6 +5,11 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export const createClient = (request: NextRequest) => {
+  // If Supabase env vars are not configured, skip session refresh and continue
+  if (!supabaseUrl || !supabaseKey) {
+    return NextResponse.next({ request: { headers: request.headers } });
+  }
+
   // Create an unmodified response
   let supabaseResponse = NextResponse.next({
     request: {
@@ -13,8 +18,8 @@ export const createClient = (request: NextRequest) => {
   });
 
   const supabase = createServerClient(
-    supabaseUrl!,
-    supabaseKey!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll() {
@@ -32,6 +37,9 @@ export const createClient = (request: NextRequest) => {
       },
     },
   );
+
+  // Suppress unused variable warning — supabase client initialised for cookie side-effects
+  void supabase;
 
   return supabaseResponse;
 };

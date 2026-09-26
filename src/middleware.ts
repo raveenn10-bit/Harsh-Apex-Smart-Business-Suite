@@ -56,8 +56,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Refresh Supabase session cookies
-  return createClient(request);
+  // Refresh Supabase session cookies (safe — falls back on error)
+  try {
+    return createClient(request);
+  } catch {
+    return NextResponse.next();
+  }
 }
 
 export const config = {
