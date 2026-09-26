@@ -30,7 +30,13 @@ export interface GeminiResponse {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MODEL_NAME = 'gemini-1.5-flash';
+// Models tried in order of speed and current availability
+const CANDIDATE_MODELS = [
+  'gemini-3.5-flash',
+  'gemini-flash-latest',
+  'gemini-3.8-flash',
+];
+
 const MAX_TOOL_ITERATIONS = 5;
 
 const SYSTEM_INSTRUCTION = `You are the Harsh Apex AI Business Intelligence Advisor — a sophisticated, professional business analyst embedded inside a Sri Lankan multi-tenant SaaS platform called Harsh Apex Smart Business Suite.
@@ -58,10 +64,7 @@ const safetySettings = [
 
 /**
  * Send a message to Gemini with full multi-turn conversation history.
- * @param userMessage  The user's latest message
- * @param businessId   From verified server session — NEVER from model output
- * @param businessName Human-readable workspace name for context
- * @param history      Previous conversation turns
+ * Automatically tries candidate models with fallback for high resilience.
  */
 export async function askGemini(
   userMessage: string,
@@ -76,119 +79,104 @@ export async function askGemini(
       ok: false,
       configError: true,
       error:
-        'GEMINI_API_KEY is not configured. Please ask your system administrator to add the API key to the server environment variables.',
+        'GEMINI_API_KEY is not configured in server environment variables. Please add GEMINI_API_KEY in Vercel Project Settings.',
     };
   }
 
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
+  const genAI = new GoogleGenerativeAI(apiKey);
 
-    const model = genAI.getGenerativeModel({
-      model: MODEL_NAME,
-      systemInstruction: `${SYSTEM_INSTRUCTION}\n\nCurrent workspace: ${businessName} (ID: [REDACTED])`,
-      tools: [{ functionDeclarations: GEMINI_TOOL_DECLARATIONS as never }],
-      safetySettings,
-    });
+  // 2. Build conversation history in Gemini format
+  const geminiHistory: Content[] = history.flatMap((msg): Content[] => [
+    {
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.content }],
+    },
+  ]);
 
-    // 2. Build conversation history in Gemini format (user/model alternating)
-    const geminiHistory: Content[] = history.flatMap((msg): Content[] => [
-      {
-        role: msg.role === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.content }],
-      },
-    ]);
+  let lastError: string | null = null;
 
-    const chat = model.startChat({
-      history: geminiHistory,
-      generationConfig: {
-        temperature: 0.4,
-        topK: 32,
-        topP: 0.9,
-        maxOutputTokens: 1024,
-      },
-    });
+  // 3. Try each candidate model until one succeeds
+  for (const modelName of CANDIDATE_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction: `${SYSTEM_INSTRUCTION}\n\nCurrent workspace: ${businessName} (ID: [REDACTED])`,
+        tools: [{ functionDeclarations: GEMINI_TOOL_DECLARATIONS as never }],
+        safetySettings,
+      });
 
-    // 3. Agentic tool-call loop (max MAX_TOOL_ITERATIONS to prevent runaway loops)
-    let currentMessage = userMessage;
-    let iterationCount = 0;
+      const chat = model.startChat({
+        history: geminiHistory,
+        generationConfig: {
+          temperature: 0.4,
+          topK: 32,
+          topP: 0.9,
+          maxOutputTokens: 1024,
+        },
+      });
 
-    while (iterationCount < MAX_TOOL_ITERATIONS) {
-      iterationCount++;
+      let currentMessage: string | Array<{ functionResponse: { name: string; response: unknown } }> = userMessage;
+      let iterationCount = 0;
 
-      const result = await chat.sendMessage(currentMessage);
-      const response = result.response;
-      const candidate = response.candidates?.[0];
+      while (iterationCount < MAX_TOOL_ITERATIONS) {
+        iterationCount++;
 
-      if (!candidate) {
-        return { ok: false, error: 'No response from Gemini. Please try again.' };
-      }
+        const result = await chat.sendMessage(currentMessage as never);
+        const response = result.response;
+        const candidate = response.candidates?.[0];
 
-      // 4. Check for function calls
-      const functionCalls = response.functionCalls();
-
-      if (!functionCalls || functionCalls.length === 0) {
-        // No more tool calls — return the final text answer
-        const text = response.text();
-        if (!text) {
-          return { ok: false, error: 'Gemini returned an empty response. Please try rephrasing your question.' };
+        if (!candidate) {
+          throw new Error('No candidate returned');
         }
-        return { ok: true, answer: text };
+
+        const functionCalls = response.functionCalls();
+
+        if (!functionCalls || functionCalls.length === 0) {
+          const text = response.text();
+          if (text) {
+            return { ok: true, answer: text };
+          }
+          throw new Error('Empty response text');
+        }
+
+        // Execute tools server-side with verified business_id
+        const toolResponseParts = await Promise.all(
+          functionCalls.map(async (fc) => {
+            const toolResult = await executeBusinessTool(fc.name, businessId);
+            return {
+              functionResponse: {
+                name: fc.name,
+                response: toolResult.ok
+                  ? { result: toolResult.data }
+                  : { error: toolResult.error ?? 'Tool execution failed' },
+              },
+            };
+          })
+        );
+
+        // Feed tool results back to model
+        currentMessage = toolResponseParts;
       }
 
-      // 5. Execute each tool server-side with the bound business_id
-      const toolResponseParts = await Promise.all(
-        functionCalls.map(async (fc) => {
-          // business_id is ALWAYS from session — model cannot supply it
-          const toolResult = await executeBusinessTool(fc.name, businessId);
-          return {
-            functionResponse: {
-              name: fc.name,
-              response: toolResult.ok
-                ? { result: toolResult.data }
-                : { error: toolResult.error ?? 'Tool execution failed' },
-            },
-          };
-        })
-      );
-
-      // 6. Feed tool results back to model
-      currentMessage = JSON.stringify(toolResponseParts); // will be sent as functionResponse
-      await chat.sendMessage(toolResponseParts as never);
-
-      // Now loop again to get the model's synthesis response
-      const synthesisResult = await chat.sendMessage('Please provide your analysis based on the data retrieved.');
-      const synthesisText = synthesisResult.response.text();
-
-      if (synthesisText) {
-        return { ok: true, answer: synthesisText };
-      }
+      return { ok: false, error: 'Maximum reasoning iterations reached. Please try a simpler question.' };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[Gemini Model ${modelName} Warning]:`, msg.slice(0, 120));
+      lastError = msg;
+      // Continue to next candidate model
     }
+  }
 
-    return { ok: false, error: 'Maximum reasoning iterations reached. Please try a simpler question.' };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-
-    // Handle rate limiting
-    if (message.includes('429') || message.toLowerCase().includes('quota')) {
-      return {
-        ok: false,
-        error:
-          '⚠️ AI service is temporarily rate-limited. Please wait 30 seconds and try again.',
-      };
-    }
-
-    // Handle model not found / deprecated
-    if (message.includes('404') || message.toLowerCase().includes('not found')) {
-      return {
-        ok: false,
-        error: 'The AI model is temporarily unavailable. Please contact your administrator.',
-      };
-    }
-
-    console.error('[Gemini Service Error]:', message);
+  // Handle common error classes
+  if (lastError && (lastError.includes('429') || lastError.toLowerCase().includes('quota'))) {
     return {
       ok: false,
-      error: 'AI Assistant encountered an error. Please try again.',
+      error: '⚠️ AI service is temporarily rate-limited. Please wait 30 seconds and try again.',
     };
   }
+
+  return {
+    ok: false,
+    error: 'AI service is temporarily busy. Please try asking again in a moment.',
+  };
 }
