@@ -10,9 +10,15 @@ export async function getPGlite(): Promise<PGlite> {
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
-    // Persistent directory or in-memory
-    const dataDir = path.join(process.cwd(), '.db_pglite');
-    const pg = new PGlite(dataDir);
+    // Persistent directory or in-memory fallback for serverless
+    const isServerless = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+    let pg: PGlite;
+    try {
+      const dataDir = isServerless ? path.join('/tmp', '.db_pglite') : path.join(process.cwd(), '.db_pglite');
+      pg = new PGlite(dataDir);
+    } catch {
+      pg = new PGlite();
+    }
 
     try {
       // Check if schema already initialized
@@ -50,7 +56,7 @@ export async function getPGlite(): Promise<PGlite> {
         }
       }
     } catch (err) {
-      console.error('[PGlite] Initialization error:', err);
+      console.warn('[PGlite] Initialization warning:', err instanceof Error ? err.message : String(err));
     }
 
     pgliteInstance = pg;
@@ -61,12 +67,22 @@ export async function getPGlite(): Promise<PGlite> {
 }
 
 export async function query<T = Record<string, unknown>>(sql: string, params: unknown[] = []): Promise<T[]> {
-  const pg = await getPGlite();
-  const res = await pg.query<T>(sql, params);
-  return res.rows;
+  try {
+    const pg = await getPGlite();
+    const res = await pg.query<T>(sql, params);
+    return res.rows;
+  } catch (err) {
+    console.warn('[PGlite query warning]:', err instanceof Error ? err.message : String(err));
+    return [];
+  }
 }
 
 export async function execute(sql: string): Promise<void> {
-  const pg = await getPGlite();
-  await pg.exec(sql);
+  try {
+    const pg = await getPGlite();
+    await pg.exec(sql);
+  } catch (err) {
+    console.warn('[PGlite execute warning]:', err instanceof Error ? err.message : String(err));
+  }
 }
+

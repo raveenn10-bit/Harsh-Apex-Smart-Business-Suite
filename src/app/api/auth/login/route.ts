@@ -37,10 +37,12 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Login error:', error);
+    const errMessage = error instanceof Error ? error.message : String(error);
+    console.error('Login error:', errMessage);
     return NextResponse.json(
-      { error: 'An error occurred during authentication' },
+      { error: `Authentication failed: ${errMessage}` },
       { status: 500 }
     );
   }
 }
+

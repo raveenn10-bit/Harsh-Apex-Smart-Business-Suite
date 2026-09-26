@@ -7,6 +7,7 @@ const demoUsers = [
   { email: 'business2@demo.harshapex.com.lk', pass: 'BusinessDemo@2', expectedPkg: 'BUSINESS' },
   { email: 'premium1@demo.harshapex.com.lk', pass: 'PremiumDemo@1', expectedPkg: 'PREMIUM' },
   { email: 'premium2@demo.harshapex.com.lk', pass: 'PremiumDemo@2', expectedPkg: 'PREMIUM' },
+  { email: 'admin@harshapex.com.lk', pass: 'ApexAdmin@2026', expectedPkg: 'PREMIUM' },
 ];
 
 function login(user) {

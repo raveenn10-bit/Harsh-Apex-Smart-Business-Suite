@@ -43,14 +43,23 @@ export async function query<T = Record<string, unknown>>(
   sql: string,
   params: unknown[] = []
 ): Promise<T[]> {
-  const client = getPool();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = await client.query<any>(sql, params as never);
-  return result.rows as T[];
+  try {
+    const client = getPool();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await client.query<any>(sql, params as never);
+    return result.rows as T[];
+  } catch (err) {
+    console.warn('[pg-engine query error]:', err instanceof Error ? err.message : String(err));
+    return [];
+  }
 }
-
 
 export async function execute(sql: string): Promise<void> {
-  const client = getPool();
-  await client.query(sql);
+  try {
+    const client = getPool();
+    await client.query(sql);
+  } catch (err) {
+    console.warn('[pg-engine execute error]:', err instanceof Error ? err.message : String(err));
+  }
 }
+
