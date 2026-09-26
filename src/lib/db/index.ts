@@ -1,7 +1,8 @@
-import { query, execute, getPGlite } from './pglite-engine';
+import { query, execute, getPGlite } from './engine';
 import { createAdminClient } from '../supabase/admin';
 
 export { query, execute, getPGlite };
+
 
 /**
  * Universal query function: works seamlessly whether using local PGlite
