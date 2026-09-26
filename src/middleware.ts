@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { createClient } from '@/utils/supabase/middleware';
 
 const PUBLIC_PATHS = [
   '/login',
@@ -14,7 +15,7 @@ const PUBLIC_PATHS = [
   '/favicon.ico',
 ];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 1. Allow public paths and static assets
@@ -49,7 +50,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  // Refresh Supabase session cookies
+  return createClient(request);
 }
 
 export const config = {

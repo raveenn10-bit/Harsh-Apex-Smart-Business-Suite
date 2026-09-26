@@ -142,6 +142,7 @@ async function runPhase1Tests() {
 
   if (passedTests === totalTests) {
     console.log('>>> [PHASE 1 COMPLETE]: Foundation, Database, Auth, Multi-Tenancy & RBAC 100% Verified <<<\n');
+    process.exit(0);
   } else {
     console.error('>>> [PHASE 1 FAILED]: Fix failing tests before proceeding <<<\n');
     process.exit(1);
