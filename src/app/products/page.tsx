@@ -26,6 +26,7 @@ import {
   DollarSign,
 } from 'lucide-react';
 import Image from 'next/image';
+import { AppShell } from '@/components/layout/AppShell';
 import { Product, Category } from '@/types/database';
 
 export default function ProductsPage() {
@@ -163,7 +164,8 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <AppShell>
+      <div className="space-y-6">
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -252,12 +254,13 @@ export default function ProductsPage() {
                 <div>
                   {/* Top Thumbnail */}
                   <div className="relative h-40 w-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border-b border-slate-100 dark:border-slate-800">
-                    <Image
+                    <img
                       src={p.image_url || '/logo.png'}
                       alt={p.name}
-                      width={120}
-                      height={120}
-                      className="object-contain p-2 group-hover:scale-105 transition-transform duration-300 max-h-36"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/logo.png';
+                      }}
+                      className="object-contain p-3 group-hover:scale-105 transition-transform duration-300 max-h-36 max-w-[140px] w-auto h-auto"
                     />
                     <div className="absolute top-2.5 right-2.5 flex flex-col gap-1 items-end">
                       {isOutOfStock ? (
@@ -586,5 +589,6 @@ export default function ProductsPage() {
         </DialogContent>
       </Dialog>
     </div>
+  </AppShell>
   );
 }

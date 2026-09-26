@@ -151,7 +151,7 @@ export async function setSessionCookie(email: string) {
   const encoded = Buffer.from(email.toLowerCase().trim()).toString('base64');
   cookieStore.set(SESSION_COOKIE_NAME, encoded, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_APP_URL?.startsWith('http://localhost') && !process.env.NEXT_PUBLIC_APP_URL?.startsWith('http://127.0.0.1'),
     sameSite: 'lax',
     path: '/',
     maxAge: 60 * 60 * 24 * 7, // 7 days

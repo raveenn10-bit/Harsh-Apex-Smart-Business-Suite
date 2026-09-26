@@ -16,7 +16,7 @@ export async function GET() {
     [session.business_id]
   );
 
-  return NextResponse.json({ categories });
+  return NextResponse.json({ success: true, categories });
 }
 
 export async function POST(req: NextRequest) {

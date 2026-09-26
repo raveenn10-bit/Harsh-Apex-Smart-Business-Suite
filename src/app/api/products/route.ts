@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
   sql += ` ORDER BY p.created_at DESC`;
 
   const products = await query<Product>(sql, params);
-  return NextResponse.json({ products });
+  return NextResponse.json({ success: true, products });
 }
 
 export async function POST(req: NextRequest) {

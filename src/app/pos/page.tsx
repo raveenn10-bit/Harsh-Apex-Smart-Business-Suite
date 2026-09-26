@@ -90,13 +90,18 @@ export default function PosPage() {
           fetch('/api/customers'),
         ]);
 
-        const prodData = await prodRes.json();
-        const catData = await catRes.json();
-        const custData = await custRes.json();
+        const prodData = await prodRes.json().catch(() => ({}));
+        const catData = await catRes.json().catch(() => ({}));
+        const custData = await custRes.json().catch(() => ({}));
 
-        if (prodData.success) setProducts(prodData.products || []);
-        if (catData.success) setCategories(catData.categories || []);
-        if (custData.success) setCustomers(custData.customers || []);
+        const prods = prodData.products || (Array.isArray(prodData) ? prodData : []);
+        setProducts(Array.isArray(prods) ? prods : []);
+
+        const cats = catData.categories || (Array.isArray(catData) ? catData : []);
+        setCategories(Array.isArray(cats) ? cats : []);
+
+        const custs = custData.customers || (Array.isArray(custData) ? custData : []);
+        setCustomers(Array.isArray(custs) ? custs : []);
       } catch (err) {
         console.error('Failed to load POS data:', err);
       } finally {
@@ -216,9 +221,13 @@ export default function PosPage() {
 
   const filteredProducts = products.filter((p) => {
     const matchesCategory = selectedCategory === 'all' || p.category_id === selectedCategory;
+    const q = search.trim().toLowerCase();
+    if (!q) return matchesCategory;
+
     const matchesSearch =
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.sku.toLowerCase().includes(search.toLowerCase());
+      (p.name?.toLowerCase() || '').includes(q) ||
+      (p.sku?.toLowerCase() || '').includes(q) ||
+      (p.barcode?.toLowerCase() || '').includes(q);
     return matchesCategory && matchesSearch;
   });
 
