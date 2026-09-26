@@ -3,7 +3,6 @@ import type { NextRequest } from 'next/server';
 import { createClient } from '@/utils/supabase/middleware';
 
 const PUBLIC_PATHS = [
-  '/login',
   '/packages',
   '/api/auth/login',
   '/api/auth/logout',
@@ -12,25 +11,24 @@ const PUBLIC_PATHS = [
   '/logo.png',
   '/brand',
   '/demo-assets',
+  '/videos',
   '/favicon.ico',
 ];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const sessionCookie = request.cookies.get('harsh_apex_session');
 
-  // 1. Allow public paths and static assets
+  // 1. Allow static assets and Next internals
   if (
-    PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(path + '/')) ||
     pathname.startsWith('/_next') ||
+    pathname.startsWith('/videos') ||
     pathname.includes('.')
   ) {
     return NextResponse.next();
   }
 
-  // 2. Check for session cookie
-  const sessionCookie = request.cookies.get('harsh_apex_session');
-
-  // If root path '/'
+  // 2. Root path redirect
   if (pathname === '/') {
     if (sessionCookie?.value) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
@@ -38,12 +36,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // If requesting login page while already authenticated
-  if (pathname === '/login' && sessionCookie?.value) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+  // 3. Login page handling (redirect if already logged in)
+  if (pathname === '/login') {
+    if (sessionCookie?.value) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+    return NextResponse.next();
   }
 
-  // If unauthenticated on protected routes
+  // 4. Other public paths
+  if (PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(path + '/'))) {
+    return NextResponse.next();
+  }
+
+  // 5. Protected routes - require session cookie
   if (!sessionCookie?.value) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);

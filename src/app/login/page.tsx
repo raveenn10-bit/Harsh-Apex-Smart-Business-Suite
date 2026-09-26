@@ -78,7 +78,10 @@ export default function LoginPage() {
   ];
 
   async function handleLogin(e?: React.FormEvent) {
-    if (e) e.preventDefault();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!email || !password) {
       setErrorMessage('Please enter your email and password');
       return;
@@ -91,7 +94,7 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
 
       const data = await res.json();
@@ -102,8 +105,8 @@ export default function LoginPage() {
         return;
       }
 
-      // Success -> Redirect to dashboard
-      window.location.href = '/dashboard';
+      // Success -> Hard redirect to /dashboard
+      window.location.replace('/dashboard');
     } catch (err) {
       console.error('Login error:', err);
       setErrorMessage('Connection error. Please try again.');
@@ -247,7 +250,16 @@ export default function LoginPage() {
                   </div>
                 )}
 
-                <form onSubmit={handleLogin} className="space-y-4">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleLogin(e);
+                  }}
+                  action="#"
+                  method="POST"
+                  className="space-y-4"
+                >
                   {/* Email Field */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-white/90">
@@ -257,6 +269,8 @@ export default function LoginPage() {
                       <Mail className="w-4 h-4 absolute left-3 top-3 text-white/40" />
                       <Input
                         type="email"
+                        name="email"
+                        autoComplete="email"
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -284,6 +298,8 @@ export default function LoginPage() {
                       <Lock className="w-4 h-4 absolute left-3 top-3 text-white/40" />
                       <Input
                         type={showPassword ? 'text' : 'password'}
+                        name="password"
+                        autoComplete="current-password"
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -318,7 +334,14 @@ export default function LoginPage() {
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2"
+                    onClick={(e) => {
+                      // Safety click handler
+                      if (!loading) {
+                        e.preventDefault();
+                        handleLogin();
+                      }
+                    }}
+                    className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
                     {loading ? (
                       <span className="flex items-center gap-2">
