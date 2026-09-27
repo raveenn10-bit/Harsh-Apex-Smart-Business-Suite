@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { GlobalSearchDialog } from './GlobalSearchDialog';
+import { MobileBottomNav } from './MobileBottomNav';
+import { MobileAppDrawer } from './MobileAppDrawer';
 import { UserSession } from '@/types/database';
 
 interface AppShellProps {
@@ -78,29 +80,12 @@ export function AppShell({ session: propSession, children }: AppShellProps) {
         <Sidebar session={activeSession} collapsed={collapsed} />
       </div>
 
-      {/* Mobile Drawer Overlay */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden flex">
-          <div
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
-            onClick={() => setMobileOpen(false)}
-          />
-          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white dark:bg-slate-900 z-50">
-            <Sidebar
-              session={activeSession}
-              collapsed={false}
-              onCloseMobile={() => setMobileOpen(false)}
-            />
-          </div>
-        </div>
-      )}
-
       {/* Main Workspace Frame */}
       <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
         <Header
           session={activeSession}
           onToggleSidebar={() => {
-            if (window.innerWidth < 1024) {
+            if (typeof window !== 'undefined' && window.innerWidth < 1024) {
               setMobileOpen((prev) => !prev);
             } else {
               setCollapsed((prev) => !prev);
@@ -109,12 +94,22 @@ export function AppShell({ session: propSession, children }: AppShellProps) {
           onOpenSearch={() => setSearchOpen(true)}
         />
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 scrollbar-thin">
-          <div className="max-w-7xl mx-auto space-y-6">
+        <main className="flex-1 overflow-y-auto p-3.5 sm:p-6 lg:p-8 pb-28 lg:pb-8 scrollbar-thin">
+          <div className="max-w-7xl mx-auto space-y-5 sm:space-y-6">
             {children}
           </div>
         </main>
       </div>
+
+      {/* iPhone / Mobile Floating Glass Bottom Dock */}
+      <MobileBottomNav onOpenMenu={() => setMobileOpen(true)} />
+
+      {/* iOS App Drawer / Bottom Sheet */}
+      <MobileAppDrawer
+        isOpen={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        session={activeSession}
+      />
 
       {/* Global Search Dialog */}
       <GlobalSearchDialog isOpen={searchOpen} onClose={() => setSearchOpen(false)} />

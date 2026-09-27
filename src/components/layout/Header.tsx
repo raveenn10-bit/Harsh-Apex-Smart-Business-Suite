@@ -76,37 +76,57 @@ export function Header({ session, onToggleSidebar, onOpenSearch }: HeaderProps) 
   }[session.package_code];
 
   return (
-    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 px-4 flex items-center justify-between gap-4 sticky top-0 z-20 select-none">
-      {/* Left: Sidebar Toggle & Search Bar */}
-      <div className="flex items-center gap-3 flex-1 max-w-xl">
+    <header className="h-16 bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl border-b border-slate-200/70 dark:border-white/10 px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-20 select-none transition-all">
+      {/* Left: Sidebar Toggle & Search Bar / Mobile Brand */}
+      <div className="flex items-center gap-2 sm:gap-3 flex-1 max-w-xl min-w-0">
         <Button
           variant="ghost"
           size="sm"
           onClick={onToggleSidebar}
-          className="text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-lg"
-          aria-label="Toggle sidebar"
+          className="text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl active:scale-95 transition shrink-0"
+          aria-label="Toggle navigation"
         >
           <Menu className="w-5 h-5" />
         </Button>
 
-        {/* Global Search trigger bar */}
+        {/* Mobile Store & Status Indicator */}
+        <div className="flex flex-col min-w-0 lg:hidden pr-1">
+          <span className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[130px] sm:max-w-[200px] leading-tight">
+            {session.business_name}
+          </span>
+          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            {session.package_code}
+          </span>
+        </div>
+
+        {/* Global Search trigger bar (Desktop) */}
         <div
           onClick={onOpenSearch}
-          className="flex-1 flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs text-slate-400 hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer transition-colors shadow-xs"
+          className="hidden sm:flex flex-1 items-center justify-between px-3.5 py-1.5 rounded-2xl bg-slate-100/70 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 text-xs text-slate-400 hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer transition-colors shadow-xs"
         >
           <div className="flex items-center gap-2">
             <Search className="w-3.5 h-3.5 text-slate-400" />
-            <span className="hidden sm:inline">Search products, customers, invoices...</span>
-            <span className="sm:hidden">Search...</span>
+            <span>Search products, customers, invoices...</span>
           </div>
-          <kbd className="hidden sm:inline-flex items-center gap-1 font-mono text-[10px] bg-white dark:bg-slate-700 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-300">
+          <kbd className="inline-flex items-center gap-1 font-mono text-[10px] bg-white dark:bg-slate-700 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-300">
             Ctrl+K
           </kbd>
         </div>
       </div>
 
       {/* Right Action Icons & Profile */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        {/* Mobile Search Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onOpenSearch}
+          className="sm:hidden p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl h-9 w-9 active:scale-95 transition"
+          aria-label="Search"
+        >
+          <Search className="w-4 h-4" />
+        </Button>
         {/* Package Indicator Pill */}
         <Badge
           variant="outline"

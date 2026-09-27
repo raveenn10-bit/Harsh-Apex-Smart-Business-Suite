@@ -93,6 +93,7 @@
   body {
     @apply bg-background text-foreground antialiased selection:bg-blue-500/20 selection:text-blue-900 dark:selection:text-blue-200;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
